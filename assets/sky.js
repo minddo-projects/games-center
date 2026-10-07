@@ -15,13 +15,6 @@
     { c: 28, r: 2 }, { c: 35, r: 5 }, { c: 42, r: 1 }, { c: 49, r: 3 },
     { c: 5, r: 8 }, { c: 18, r: 10 }, { c: 31, r: 9 }, { c: 45, r: 11 },
   ];
-  // Fixed star field for the night theme, in fractions of the screen.
-  const STARS = Array.from({ length: 70 }, (_, i) => ({
-    x: ((i * 7919) % 1000) / 1000,
-    y: ((i * 4211) % 1000) / 1000 * 0.8,
-    s: 2 + (i % 3),
-    phase: i * 1.7,
-  }));
   const SPAN_COLS = 56;
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -39,18 +32,7 @@
   }
 
   function drawSky() {
-    if (theme.bands) {
-      // Retro: hard color bands instead of a smooth blend.
-      const bandH = h / theme.bands;
-      for (let i = 0; i < theme.bands; i++) {
-        ctx.fillStyle = PixelParty.skyColorAt(theme, i / (theme.bands - 1));
-        ctx.fillRect(0, Math.floor(i * bandH), w, Math.ceil(bandH) + 1);
-      }
-      return;
-    }
-    const g = ctx.createLinearGradient(0, 0, 0, h);
-    for (const [at, color] of theme.sky) g.addColorStop(at, color);
-    ctx.fillStyle = g;
+    ctx.fillStyle = PixelParty.skyGradient(ctx, 0, h, theme);
     ctx.fillRect(0, 0, w, h);
   }
 
@@ -67,15 +49,6 @@
       ctx.lineTo(w, Math.floor(y) + 0.5);
     }
     ctx.stroke();
-  }
-
-  function drawStars(t) {
-    for (const star of STARS) {
-      ctx.globalAlpha = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(t * 1.6 + star.phase));
-      ctx.fillStyle = "#fff6c2";
-      ctx.fillRect(Math.round(star.x * w), Math.round(star.y * h), star.s, star.s);
-    }
-    ctx.globalAlpha = 1;
   }
 
   function drawClouds(t) {
@@ -108,7 +81,7 @@
   function draw(t) {
     drawSky();
     drawGrid();
-    if (theme.stars) drawStars(t);
+    if (theme.stars) PixelParty.drawStars(ctx, w, h, t);
     drawClouds(t);
   }
 

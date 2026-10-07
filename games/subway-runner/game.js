@@ -11,6 +11,19 @@
   const drawSkinDecor = () => window.PixelParty && window.PixelParty.drawDecor(ctx, SKIN);
   // Tokens go into the Pixel Party wallet; does nothing if the game is opened on its own.
   const earnTokens = (n) => window.PixelParty && window.PixelParty.earn(n);
+  // Sky colors come from the theme picked in the Pixel Party shop (sunset if played standalone).
+  const THEME = (window.PixelParty && window.PixelParty.theme()) || {
+    sky: [[0, "#ff8a2b"], [0.55, "#ffc857"], [1, "#fff3b0"]],
+    cloud: "rgba(255, 255, 255, 0.85)",
+    grid: "rgba(255, 255, 255, 0.22)",
+  };
+  function themeSky(y0, y1) {
+    if (window.PixelParty) return window.PixelParty.skyGradient(ctx, y0, y1, THEME);
+    const g = ctx.createLinearGradient(0, y0, 0, y1);
+    for (const [at, color] of THEME.sky) g.addColorStop(at, color);
+    return g;
+  }
+  const drawThemeStars = (w, h) => THEME.stars && window.PixelParty.drawStars(ctx, w, h, animTime);
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d");
 
@@ -828,13 +841,10 @@
   }
 
   // --- Drawing: backdrop ---
-  const SKY_STOPS = [[0, "#ff8a2b"], [0.55, "#ffc857"], [1, "#fff3b0"]];
-
   function drawSky() {
-    const g = ctx.createLinearGradient(0, 0, 0, HORIZON);
-    for (const [at, color] of SKY_STOPS) g.addColorStop(at, color);
-    ctx.fillStyle = g;
+    ctx.fillStyle = themeSky(0, HORIZON);
     ctx.fillRect(-40, -40, VIEW_W + 80, HORIZON + 41);
+    drawThemeStars(VIEW_W, HORIZON);
   }
 
   // Rows of three pulsing rounded squares, drifting slowly across the sky.
@@ -846,7 +856,7 @@
   const CLOUD_SIZE = 34;
 
   function drawClouds() {
-    ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+    ctx.fillStyle = THEME.cloud;
     for (let i = 0; i < CLOUDS.length; i++) {
       const c = CLOUDS[i];
       const raw = c.x + animTime * 10 - camX * 10;
@@ -855,7 +865,7 @@
         const pulse = 0.72 + 0.28 * Math.sin(animTime * 2.2 + i * 0.7 + j * 0.9);
         const size = CLOUD_SIZE * pulse;
         ctx.beginPath();
-        ctx.roundRect(x + j * CLOUD_SIZE + (CLOUD_SIZE - size) / 2, c.y + (CLOUD_SIZE - size) / 2, size, size, 6 * pulse);
+        ctx.roundRect(x + j * CLOUD_SIZE + (CLOUD_SIZE - size) / 2, c.y + (CLOUD_SIZE - size) / 2, size, size, THEME.square ? 0 : 6 * pulse);
         ctx.fill();
       }
     }

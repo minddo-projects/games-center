@@ -231,6 +231,39 @@
     return `rgb(${mix(16)}, ${mix(8)}, ${mix(0)})`;
   }
 
+  // Canvas gradient for a theme's sky between y0 and y1. Banded themes get hard color
+  // steps, so games can fill any shape (sky, Bun Survivor's floor) with one fillStyle.
+  function skyGradient(ctx, y0, y1, theme = current(THEMES, KEYS.theme)) {
+    const g = ctx.createLinearGradient(0, y0, 0, y1);
+    if (!theme.bands) {
+      for (const [at, color] of theme.sky) g.addColorStop(at, color);
+      return g;
+    }
+    for (let i = 0; i < theme.bands; i++) {
+      const color = mixSky(theme.sky, i / (theme.bands - 1));
+      g.addColorStop(i / theme.bands, color);
+      g.addColorStop((i + 1) / theme.bands, color);
+    }
+    return g;
+  }
+
+  // Night theme's twinkling stars, spread over the top 80% of a w x h area.
+  const STARS = Array.from({ length: 70 }, (_, i) => ({
+    x: ((i * 7919) % 1000) / 1000,
+    y: (((i * 4211) % 1000) / 1000) * 0.8,
+    s: 2 + (i % 3),
+    phase: i * 1.7,
+  }));
+  function drawStars(ctx, w, h, t) {
+    ctx.save();
+    ctx.fillStyle = "#fff6c2";
+    for (const star of STARS) {
+      ctx.globalAlpha = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(t * 1.6 + star.phase));
+      ctx.fillRect(Math.round(star.x * w), Math.round(star.y * h), star.s, star.s);
+    }
+    ctx.restore();
+  }
+
   // The player character as Flag Rush draws it at one 48px tile: the skin's shape in bun
   // space, with the games' outline width, eyes, and feet.
   let svgCount = 0;
@@ -270,6 +303,8 @@
     bunSVG,
     drawDecor,
     skyCSS,
+    skyGradient,
+    drawStars,
     skyColorAt: (theme, t) => mixSky(theme.sky, t),
   };
 

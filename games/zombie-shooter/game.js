@@ -11,6 +11,19 @@
   const drawSkinDecor = () => window.PixelParty && window.PixelParty.drawDecor(ctx, SKIN);
   // Tokens go into the Pixel Party wallet; does nothing if the game is opened on its own.
   const earnTokens = (n) => window.PixelParty && window.PixelParty.earn(n);
+  // Sky colors come from the theme picked in the Pixel Party shop (sunset if played standalone).
+  const THEME = (window.PixelParty && window.PixelParty.theme()) || {
+    sky: [[0, "#ff8a2b"], [0.55, "#ffc857"], [1, "#fff3b0"]],
+    cloud: "rgba(255, 255, 255, 0.85)",
+    grid: "rgba(255, 255, 255, 0.22)",
+  };
+  function themeSky(y0, y1) {
+    if (window.PixelParty) return window.PixelParty.skyGradient(ctx, y0, y1, THEME);
+    const g = ctx.createLinearGradient(0, y0, 0, y1);
+    for (const [at, color] of THEME.sky) g.addColorStop(at, color);
+    return g;
+  }
+  const drawThemeStars = (w, h) => THEME.stars && window.PixelParty.drawStars(ctx, w, h, animTime);
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d");
 
@@ -1252,17 +1265,10 @@
   }
 
   // --- Drawing: backdrop ---
-  const SKY_STOPS = [[0, "#ff8a2b"], [0.55, "#ffc857"], [1, "#fff3b0"]];
-
-  function skyGradient(y0, y1) {
-    const g = ctx.createLinearGradient(0, y0, 0, y1);
-    for (const [at, color] of SKY_STOPS) g.addColorStop(at, color);
-    return g;
-  }
-
   function drawSky() {
-    ctx.fillStyle = skyGradient(0, VIEW_H);
+    ctx.fillStyle = themeSky(0, VIEW_H);
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    drawThemeStars(VIEW_W, VIEW_H);
   }
 
   // Drifting clouds under the floating arena: rows of three tile-sized rounded squares, with parallax.
@@ -1276,7 +1282,7 @@
   ];
 
   function drawClouds() {
-    ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+    ctx.fillStyle = THEME.cloud;
     for (let i = 0; i < PARALLAX_CLOUDS.length; i++) {
       const cloud = PARALLAX_CLOUDS[i];
       const raw = cloud.c * TILE - cameraX * PARALLAX + animTime * 14;
@@ -1287,7 +1293,7 @@
         const pulse = 0.72 + 0.28 * Math.sin(animTime * 2.2 + i * 0.7 + j * 0.9);
         const size = TILE * pulse;
         ctx.beginPath();
-        ctx.roundRect(x + j * TILE + (TILE - size) / 2, y + (TILE - size) / 2, size, size, CLOUD_RADIUS * pulse);
+        ctx.roundRect(x + j * TILE + (TILE - size) / 2, y + (TILE - size) / 2, size, size, THEME.square ? 0 : CLOUD_RADIUS * pulse);
         ctx.fill();
       }
     }
@@ -1305,7 +1311,7 @@
   // World-space pass: floor keeps the sunset sky, lightly tinted, with a white grid and faint checker.
   function drawFloor() {
     const { c0, c1, r0, r1 } = visibleTileRange();
-    const floorGrad = skyGradient(cameraY, cameraY + VIEW_H);
+    const floorGrad = themeSky(cameraY, cameraY + VIEW_H);
     for (let r = r0; r <= r1; r++) {
       for (let c = c0; c <= c1; c++) {
         if (tileAt(c, r) !== "_") continue;

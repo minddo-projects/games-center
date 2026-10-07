@@ -11,6 +11,19 @@
   const drawSkinDecor = () => window.PixelParty && window.PixelParty.drawDecor(ctx, SKIN);
   // Tokens go into the Pixel Party wallet; does nothing if the game is opened on its own.
   const earnTokens = (n) => window.PixelParty && window.PixelParty.earn(n);
+  // Sky colors come from the theme picked in the Pixel Party shop (sunset if played standalone).
+  const THEME = (window.PixelParty && window.PixelParty.theme()) || {
+    sky: [[0, "#ff8a2b"], [0.55, "#ffc857"], [1, "#fff3b0"]],
+    cloud: "rgba(255, 255, 255, 0.85)",
+    grid: "rgba(255, 255, 255, 0.22)",
+  };
+  function themeSky(y0, y1) {
+    if (window.PixelParty) return window.PixelParty.skyGradient(ctx, y0, y1, THEME);
+    const g = ctx.createLinearGradient(0, y0, 0, y1);
+    for (const [at, color] of THEME.sky) g.addColorStop(at, color);
+    return g;
+  }
+  const drawThemeStars = (w, h) => THEME.stars && window.PixelParty.drawStars(ctx, w, h, animTime);
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d");
 
@@ -1052,12 +1065,9 @@
   }
 
   function drawSky() {
-    const g = ctx.createLinearGradient(0, 0, 0, VIEW_H);
-    g.addColorStop(0, "#ff8a2b");
-    g.addColorStop(0.55, "#ffc857");
-    g.addColorStop(1, "#fff3b0");
-    ctx.fillStyle = g;
+    ctx.fillStyle = themeSky(0, VIEW_H);
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    drawThemeStars(VIEW_W, VIEW_H);
   }
 
   // Mid-layer clouds: grid-aligned rows of three tile-sized rounded squares, with parallax.
@@ -1088,7 +1098,7 @@
       drawParallaxPipe(x, y);
     }
 
-    ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+    ctx.fillStyle = THEME.cloud;
     for (let cloudIndex = 0; cloudIndex < PARALLAX_CLOUDS.length; cloudIndex++) {
       const cloud = PARALLAX_CLOUDS[cloudIndex];
       const worldX = cloud.c * TILE;
@@ -1137,7 +1147,7 @@
       const ox = x + i * TILE + (TILE - size) / 2;
       const oy = y + (TILE - size) / 2;
       ctx.beginPath();
-      ctx.roundRect(ox, oy, size, size, CLOUD_RADIUS * pulse);
+      ctx.roundRect(ox, oy, size, size, THEME.square ? 0 : CLOUD_RADIUS * pulse);
       ctx.fill();
     }
   }
@@ -1145,7 +1155,7 @@
   function drawGridHint() {
     // Fixed viewport grid (does not scroll with the camera).
     ctx.save();
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.22)";
+    ctx.strokeStyle = THEME.grid;
     ctx.lineWidth = 1;
     const cols = Math.ceil(VIEW_W / TILE);
     for (let c = 0; c <= cols; c++) {
